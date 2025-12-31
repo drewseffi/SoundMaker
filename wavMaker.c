@@ -80,7 +80,10 @@ void write_notes(Song* notes, u32 num_notes)
 
         if (cur_note < num_notes)
         {
-            y = 0.25f * sinf(t * notes[cur_note].freq * 2.0f * 3.1415926535f);
+            // Sine wave
+            //y = 0.25f * sinf(t * notes[cur_note].freq * 2.0f * 3.1415926535f);
+            // Saw wave
+            y = 2.0f * (fmodf(notes[cur_note].freq * t, 1.0f) - 0.5f);
 
             if (t > cur_note_start + notes[cur_note].dur)
             {
