@@ -1,12 +1,16 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <math.h>
+#include <string.h>
+#include <stdlib.h>
+#include <stdbool.h>
 
 typedef int16_t i16;
 typedef uint16_t u16;
 typedef uint32_t u32;
 typedef float f32;
 
+// Bad name needs fixed
 typedef struct {
     f32 freq;
     f32 dur;
@@ -22,13 +26,15 @@ void write_32(FILE* f, u32 n) { fwrite(&n, 4, 1, f); }
 #define FREQ 44100
 
 // Notes
-#define C 261.63
-#define D 293.66
-#define E 329.63
-#define F 349.23
-#define G 392.00
-#define A 440.00
-#define B 493.88
+typedef enum {
+    NOTE_C, NOTE_CS, NOTE_D, NOTE_DS, NOTE_E, NOTE_F, NOTE_FS,
+    NOTE_G, NOTE_GS, NOTE_A, NOTE_AS, NOTE_B
+} NoteName;
+
+float note_freq(NoteName note, int octave) {
+    int n = (octave - 4) * 12 + (note - NOTE_A);
+    return 440.0f * powf(2.0f, n / 12.0f);
+}
 
 // Note lengths in beats
 #define NOTE_QUARTER   1.0f
@@ -107,20 +113,106 @@ void write_notes(Song* notes, u32 num_notes)
     fclose(f);
 }
 
+NoteName char_to_note(char c, bool sharp)
+{
+    if (sharp == false)
+    {
+        switch (c)
+        {
+            case 'C': return NOTE_C;
+            case 'D': return NOTE_D;
+            case 'E': return NOTE_E;
+            case 'F': return NOTE_F;
+            case 'G': return NOTE_G;
+            case 'A': return NOTE_A;
+            case 'B': return NOTE_B;
+            default: return NOTE_C;
+        }
+    }
+    else
+    {
+        switch (c)
+        {
+            case 'C': return NOTE_CS;
+            case 'D': return NOTE_DS;
+            case 'E': return NOTE_E;
+            case 'F': return NOTE_FS;
+            case 'G': return NOTE_GS;
+            case 'A': return NOTE_AS;
+            case 'B': return NOTE_B;
+            default: return NOTE_CS;
+        }  
+    }
+}
+
+Song* read_song(const char* song_name, int* out_num_notes)
+{
+    char file_path[256];
+    snprintf(file_path, sizeof(file_path), "songs\\%s", song_name);
+
+    FILE* song = fopen(file_path, "r");
+    if (!song) {
+        perror("Failed to open file");
+        return NULL;
+    }
+
+    char buffer[32];
+    int line_count = 0;
+    while (fgets(buffer, sizeof(buffer), song)) {
+        line_count++;
+    }
+    rewind(song);
+
+    Song* notes = malloc(line_count * sizeof(Song));
+    if (!notes) {
+        perror("malloc failed");
+        fclose(song);
+        return NULL;
+    }
+
+    for (int i = 0; i < line_count; i++) {
+        if (fgets(buffer, sizeof(buffer), song)) {
+            bool sharp = false;
+            char* token = strtok(buffer, ",");
+            if (!token) continue;
+
+            char note_char = token[0];
+            char octave_char;
+            if (token[1] == '#')
+            {
+                octave_char = token[2];
+            }
+            else
+            {
+                octave_char = token[1];
+            }
+            int octave = octave_char - '0';
+
+            char* duration_str = strtok(NULL, ",");
+            float duration = duration_str ? atof(duration_str) : 0.25f;
+
+            NoteName n = char_to_note(note_char, sharp);
+            notes[i].freq = note_freq(n, octave);
+            notes[i].dur = note_duration(BPM, duration);
+            notes[i].vol = 0.25f;
+        }
+    }
+
+    fclose(song);
+    *out_num_notes = line_count;
+    return notes;
+}
+
 int main(void)
 {
-    Song notes[] = {
-        {E, note_duration(BPM, NOTE_QUARTER), 0.25f},
-        {D, note_duration(BPM, NOTE_QUARTER), 0.25f},
-        {C, note_duration(BPM, NOTE_QUARTER), 0.25f},
-        {D, note_duration(BPM, NOTE_QUARTER), 0.25f},
-        {E, note_duration(BPM, NOTE_QUARTER), 0.25f},
-        {E, note_duration(BPM, NOTE_QUARTER), 0.25f},
-        {E, note_duration(BPM, NOTE_HALF), 1.0f},
-    };
+    int num_notes;
+    Song* notes = read_song("MHALL.txt", &num_notes);
+    if (!notes) return 1;
 
-    u32 num_notes = sizeof(notes) / sizeof(notes[0]);
     write_notes(notes, num_notes);
 
+    free(notes);
+    
+    printf("Test");
     return 0;
 }
