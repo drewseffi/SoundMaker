@@ -10,11 +10,13 @@ typedef float f32;
 typedef struct {
     f32 freq;
     f32 dur;
+    f32 vol;
 } Song;
 
 void write_16(FILE* f, u16 n) { fwrite(&n, 2, 1, f); }
 void write_32(FILE* f, u32 n) { fwrite(&n, 4, 1, f); }
 
+#define PI 3.1415926535f
 #define WRITE_STR_LIT(f, s) fwrite((s), 1, sizeof(s) - 1, f)
 
 #define FREQ 44100
@@ -40,6 +42,10 @@ void write_32(FILE* f, u32 n) { fwrite(&n, 4, 1, f); }
 f32 note_duration(f32 bpm, f32 beats)
 {
     return (60.0f / bpm) * beats;
+}
+
+float sign(float x) {
+    return (x >= 0.0f) ? 1.0f : -1.0f;
 }
 
 void write_notes(Song* notes, u32 num_notes)
@@ -81,9 +87,11 @@ void write_notes(Song* notes, u32 num_notes)
         if (cur_note < num_notes)
         {
             // Sine wave
-            //y = 0.25f * sinf(t * notes[cur_note].freq * 2.0f * 3.1415926535f);
+            //y = notes[cur_note].vol * sinf(t * notes[cur_note].freq * 2.0f * PI);
             // Saw wave
-            y = 2.0f * (fmodf(notes[cur_note].freq * t, 1.0f) - 0.5f);
+            //y = notes[cur_note].vol * (fmodf(notes[cur_note].freq * t, 1.0f) - 0.5f);
+            // Square wave
+            y = notes[cur_note].vol * sign(sin(t * notes[cur_note].freq * 2.0f * PI));
 
             if (t > cur_note_start + notes[cur_note].dur)
             {
@@ -92,7 +100,7 @@ void write_notes(Song* notes, u32 num_notes)
             }
         }
 
-        i16 sample = (i16)(y * 32767.0f);
+        i16 sample = (i16)(y * INT16_MAX);
         write_16(f, sample);
     }
 
@@ -102,13 +110,13 @@ void write_notes(Song* notes, u32 num_notes)
 int main(void)
 {
     Song notes[] = {
-        {E, note_duration(BPM, NOTE_QUARTER)},
-        {D, note_duration(BPM, NOTE_QUARTER)},
-        {C, note_duration(BPM, NOTE_QUARTER)},
-        {D, note_duration(BPM, NOTE_QUARTER)},
-        {E, note_duration(BPM, NOTE_QUARTER)},
-        {E, note_duration(BPM, NOTE_QUARTER)},
-        {E, note_duration(BPM, NOTE_HALF)},
+        {E, note_duration(BPM, NOTE_QUARTER), 0.25f},
+        {D, note_duration(BPM, NOTE_QUARTER), 0.25f},
+        {C, note_duration(BPM, NOTE_QUARTER), 0.25f},
+        {D, note_duration(BPM, NOTE_QUARTER), 0.25f},
+        {E, note_duration(BPM, NOTE_QUARTER), 0.25f},
+        {E, note_duration(BPM, NOTE_QUARTER), 0.25f},
+        {E, note_duration(BPM, NOTE_HALF), 1.0f},
     };
 
     u32 num_notes = sizeof(notes) / sizeof(notes[0]);
