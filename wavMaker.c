@@ -15,7 +15,7 @@ typedef struct {
     f32 freq;
     f32 dur;
     f32 vol;
-} Song;
+} Note;
 
 // Helper functions
 void write_16(FILE* f, u16 n) { fwrite(&n, 2, 1, f); }
@@ -56,7 +56,7 @@ float sign(float x) {
 }
 
 // Writes header for .wav file and the data for samples
-void write_notes(Song* notes, u32 num_notes)
+void write_notes(Note* notes, u32 num_notes)
 {
     // Open file
     FILE* f = fopen("test.wav", "wb");
@@ -153,7 +153,7 @@ NoteName char_to_note(char c, bool sharp)
 }
 
 // Reads the song from the file and does a lot of the heavy lifting
-Song* read_song(const char* song_name, int* out_num_notes, f32 bpm)
+Note* read_song(const char* song_name, int* out_num_notes, f32 bpm)
 {
     // Gets full file path
     char file_path[256];
@@ -178,7 +178,7 @@ Song* read_song(const char* song_name, int* out_num_notes, f32 bpm)
     rewind(song);
 
     // Sizes array based on how many lines there are in the file
-    Song* notes = malloc(line_count * sizeof(Song));
+    Note* notes = malloc(line_count * sizeof(Note));
     if (!notes) 
     {
         perror("malloc failed");
@@ -266,7 +266,7 @@ int main(void)
 
     // Reads the song from the file
     int num_notes;
-    Song* notes = read_song(song_title, &num_notes, bpm);
+    Note* notes = read_song(song_title, &num_notes, bpm);
     if (!notes) return 1;
 
     // Writes the .wav file
