@@ -205,14 +205,32 @@ Song* read_song(const char* song_name, int* out_num_notes)
 
 int main(void)
 {
+    printf("   _____                       _ __  __       _             \n");
+    printf("  / ____|                     | |  \\/  |     | |            \n");
+    printf(" | (___   ___  _   _ _ __   __| |  /\\  | __ _| | _____ _ __ \n");
+    printf("  \\___ \\ / _ \\| | | | '_ \\ / _` | |\\/| |/ _` | |/ / _ \\ '__|\n");
+    printf("  ____) | (_) | |_| | | | | (_| | |  | | (_| |   <  __/ |   \n");
+    printf(" |_____/ \\___/ \\__,_|_| |_|\\__,_|_|  |_|\\__,_|_|\\_\\___|_|   \n");
+    printf("\n");
+    printf("*----------------------------------------------------------*\n");
+    printf("\n");
+    printf("Please type the name of the file you would like to generate...\n");
+
+    char song_title[256];
+    fgets(song_title, sizeof(song_title), stdin);
+
+    size_t len = strlen(song_title);
+    if (len > 0 && song_title[len - 1] == '\n') {
+        song_title[len - 1] = '\0';
+    }
+
     int num_notes;
-    Song* notes = read_song("MHALL.txt", &num_notes);
+    Song* notes = read_song(song_title, &num_notes);
     if (!notes) return 1;
 
     write_notes(notes, num_notes);
+    
 
     free(notes);
-    
-    printf("Test");
     return 0;
 }
