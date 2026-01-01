@@ -42,9 +42,6 @@ float note_freq(NoteName note, int octave) {
 #define NOTE_HALF      2.0f
 #define NOTE_WHOLE     4.0f
 
-// BPM
-#define BPM 109
-
 f32 note_duration(f32 bpm, f32 beats)
 {
     return (60.0f / bpm) * beats;
@@ -145,7 +142,7 @@ NoteName char_to_note(char c, bool sharp)
     }
 }
 
-Song* read_song(const char* song_name, int* out_num_notes)
+Song* read_song(const char* song_name, int* out_num_notes, f32 bpm)
 {
     char file_path[256];
     snprintf(file_path, sizeof(file_path), "songs\\%s", song_name);
@@ -193,7 +190,7 @@ Song* read_song(const char* song_name, int* out_num_notes)
 
             NoteName n = char_to_note(note_char, sharp);
             notes[i].freq = note_freq(n, octave);
-            notes[i].dur = note_duration(BPM, duration);
+            notes[i].dur = note_duration(bpm, duration);
             notes[i].vol = 0.25f;
         }
     }
@@ -201,6 +198,14 @@ Song* read_song(const char* song_name, int* out_num_notes)
     fclose(song);
     *out_num_notes = line_count;
     return notes;
+}
+
+void remove_new_line(char* s)
+{
+    size_t len = strlen(s);
+    if (len > 0 && s[len - 1] == '\n') {
+        s[len - 1] = '\0';
+    }
 }
 
 int main(void)
@@ -218,18 +223,20 @@ int main(void)
 
     char song_title[256];
     fgets(song_title, sizeof(song_title), stdin);
+    remove_new_line(song_title);
 
-    size_t len = strlen(song_title);
-    if (len > 0 && song_title[len - 1] == '\n') {
-        song_title[len - 1] = '\0';
-    }
+    printf("What BPM?\n");
+    char bpm_str[32];
+    fgets(bpm_str, sizeof(bpm_str), stdin);
+    remove_new_line(bpm_str);
+    f32 bpm = (f32)atof(bpm_str);
 
     int num_notes;
-    Song* notes = read_song(song_title, &num_notes);
+    Song* notes = read_song(song_title, &num_notes, bpm);
     if (!notes) return 1;
 
     write_notes(notes, num_notes);
-    
+
 
     free(notes);
     return 0;
