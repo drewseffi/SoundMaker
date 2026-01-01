@@ -178,6 +178,7 @@ Song* read_song(const char* song_name, int* out_num_notes, f32 bpm)
             if (token[1] == '#')
             {
                 octave_char = token[2];
+                sharp = true;
             }
             else
             {
