@@ -17,12 +17,15 @@ typedef struct {
     f32 vol;
 } Song;
 
+// Helper functions
 void write_16(FILE* f, u16 n) { fwrite(&n, 2, 1, f); }
 void write_32(FILE* f, u32 n) { fwrite(&n, 4, 1, f); }
 
+// Definitions
 #define PI 3.1415926535f
 #define WRITE_STR_LIT(f, s) fwrite((s), 1, sizeof(s) - 1, f)
 
+// Sample rate
 #define FREQ 44100
 
 // Notes
@@ -47,14 +50,18 @@ f32 note_duration(f32 bpm, f32 beats)
     return (60.0f / bpm) * beats;
 }
 
+// Sign function for square wave
 float sign(float x) {
     return (x >= 0.0f) ? 1.0f : -1.0f;
 }
 
+// Writes header for .wav file and the data for samples
 void write_notes(Song* notes, u32 num_notes)
 {
+    // Open file
     FILE* f = fopen("test.wav", "wb");
 
+    // Calculate song duration
     f32 duration = 0.0f;
     for (u32 i = 0; i < num_notes; i++)
     {
@@ -64,6 +71,7 @@ void write_notes(Song* notes, u32 num_notes)
     u32 num_samples = (u32)(duration * FREQ);
     u32 data_size = num_samples * sizeof(i16);
 
+    // Header for .wav file
     WRITE_STR_LIT(f, "RIFF");
     write_32(f, 36 + data_size);
     WRITE_STR_LIT(f, "WAVE");
@@ -77,6 +85,7 @@ void write_notes(Song* notes, u32 num_notes)
     write_16(f, sizeof(i16));
     write_16(f, 16);
 
+    // Data section
     WRITE_STR_LIT(f, "data");
     write_32(f, data_size);
 
@@ -110,6 +119,7 @@ void write_notes(Song* notes, u32 num_notes)
     fclose(f);
 }
 
+// Takes a character and a sharp bool and outputs the correct note enum
 NoteName char_to_note(char c, bool sharp)
 {
     if (sharp == false)
@@ -142,39 +152,54 @@ NoteName char_to_note(char c, bool sharp)
     }
 }
 
+// Reads the song from the file and does a lot of the heavy lifting
 Song* read_song(const char* song_name, int* out_num_notes, f32 bpm)
 {
+    // Gets full file path
     char file_path[256];
     snprintf(file_path, sizeof(file_path), "songs\\%s", song_name);
 
+    // Opens file
     FILE* song = fopen(file_path, "r");
-    if (!song) {
+    if (!song) 
+    {
         perror("Failed to open file");
         return NULL;
     }
 
+    // Counts how many lines there are
     char buffer[32];
     int line_count = 0;
-    while (fgets(buffer, sizeof(buffer), song)) {
+    while (fgets(buffer, sizeof(buffer), song)) 
+    {
         line_count++;
     }
+    // Goes back to the start of the file
     rewind(song);
 
+    // Sizes array based on how many lines there are in the file
     Song* notes = malloc(line_count * sizeof(Song));
-    if (!notes) {
+    if (!notes) 
+    {
         perror("malloc failed");
         fclose(song);
         return NULL;
     }
 
+    // Loops through all the lines in the file
     for (int i = 0; i < line_count; i++) {
-        if (fgets(buffer, sizeof(buffer), song)) {
+        if (fgets(buffer, sizeof(buffer), song)) 
+        {
             bool sharp = false;
+
+            // Tokenizes the lines
             char* token = strtok(buffer, ",");
             if (!token) continue;
 
+            // Gets the first character of the token which will be the note
             char note_char = token[0];
             char octave_char;
+            // If there is a sharp note the octave number will be one later
             if (token[1] == '#')
             {
                 octave_char = token[2];
@@ -184,11 +209,14 @@ Song* read_song(const char* song_name, int* out_num_notes, f32 bpm)
             {
                 octave_char = token[1];
             }
+            // Convert octave to int
             int octave = octave_char - '0';
 
+            // Gets duration token
             char* duration_str = strtok(NULL, ",");
             float duration = duration_str ? atof(duration_str) : 0.25f;
 
+            // Adds all of the data to the array for writing
             NoteName n = char_to_note(note_char, sharp);
             notes[i].freq = note_freq(n, octave);
             notes[i].dur = note_duration(bpm, duration);
@@ -201,6 +229,7 @@ Song* read_song(const char* song_name, int* out_num_notes, f32 bpm)
     return notes;
 }
 
+// Removes new line characters from the end of strings
 void remove_new_line(char* s)
 {
     size_t len = strlen(s);
@@ -222,23 +251,28 @@ int main(void)
     printf("\n");
     printf("Please type the name of the file you would like to generate...\n");
 
+    // Gets file name
     char song_title[256];
     fgets(song_title, sizeof(song_title), stdin);
     remove_new_line(song_title);
 
+    // Gets BPM
     printf("What BPM?\n");
     char bpm_str[32];
     fgets(bpm_str, sizeof(bpm_str), stdin);
     remove_new_line(bpm_str);
+    // Convert to float
     f32 bpm = (f32)atof(bpm_str);
 
+    // Reads the song from the file
     int num_notes;
     Song* notes = read_song(song_title, &num_notes, bpm);
     if (!notes) return 1;
 
+    // Writes the .wav file
     write_notes(notes, num_notes);
 
-
+    // Frees malloced memory
     free(notes);
     return 0;
 }
